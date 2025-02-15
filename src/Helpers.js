@@ -7,12 +7,22 @@ export const formatPhoneNumber = (phoneNumber) => {
 };
 
 export const formatTime = (time) => {
-    const [hours, minutes] = time.split(":");
-    let formattedHours = parseInt(hours, 10);
-    const ampm = formattedHours >= 12 ? "PM" : "AM";
-  
-    formattedHours = formattedHours % 12;
-    formattedHours = formattedHours ? formattedHours : 12;
-  
-    return `${formattedHours}:${minutes} ${ampm}`;
+  const hours = Math.floor(time); // Whole number
+  const minutes = Math.round((time % 1) * 60); // Turns decimal into minutes
+  const ampm = hours >= 12 ? "PM" : "AM";
+
+  let formattedHours = hours % 12 || 12; // Turns 14 into 2 PM, for example
+  const formattedMinutes = minutes.toString().padStart(2, "0");
+
+  return `${formattedHours}:${formattedMinutes} ${ampm}`;
 };
+
+export const getClientById = (clientId, clients) => {
+  const client = clients.find(client => client.id === clientId);
+  return client || null;
+};
+
+export const getClientByPhone = (clientPhone, clients) => {
+  const client = clients.find(client => client.phone === clientPhone);
+  return client || null;
+}
