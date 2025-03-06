@@ -7,6 +7,7 @@ const Book = () => {
   const [appointments, setAppointments] = useState([]);
   const [closures, setClosures] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [noLanguages, setNoLanguages] = useState([]);
   const [today, setToday] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -14,37 +15,39 @@ const Book = () => {
   const [availableTimes, setAvailableTimes] = useState([]);
   const [filteredLocations, setFilteredLocations] = useState([]);
   const { client } = useAuth();
-  const [nextSevenDays, setNextSevenDays] = useState([]);
+  const [nextFiveDays, setNextFiveDays] = useState([]);
 
   useEffect(() => {
     const currentDate = new Date();
     const formattedDate = `${currentDate.getMonth() + 1}/${currentDate.getDate()}/${currentDate.getFullYear()}`;
     setToday(formattedDate);
     fetchData();
-    generateNextSevenDays();
+    generateNextFiveDays();
   }, []);
 
-  const generateNextSevenDays = () => {
+  const generateNextFiveDays = () => {
     const days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) {
       const nextDay = new Date();
       nextDay.setDate(new Date().getDate() + i);
       days.push(nextDay);
     }
-    setNextSevenDays(days);
+    setNextFiveDays(days);
   };
 
   const fetchData = async () => {
     try {
-      const [appointmentsQuerySnapshot, closuresQuerySnapshot, locationsQuerySnapshot] = await Promise.all([
+      const [appointmentsQuerySnapshot, closuresQuerySnapshot, locationsQuerySnapshot, noLanguagesQuerySnapshot] = await Promise.all([
         getDocs(collection(db, "appointments")),
         getDocs(collection(db, "closures")),
         getDocs(collection(db, "locations")),
+        getDocs(collection(db, "noLanguages")),
       ]);
-
       setAppointments(appointmentsQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
       setClosures(closuresQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
       setLocations(locationsQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      setNoLanguages(noLanguagesQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id})))
+      console.log(noLanguages);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -64,10 +67,10 @@ const Book = () => {
 
     const available = [...Array(24).keys()].filter(hour => {
       const isWithinOperatingHours = hour >= location.openTime && hour < location.closeTime;
-      const hasAppointment = appointments.some(app => app.date === formattedDate && app.startTime === hour && app.location === locationIdx);
+      const hasAppointment = appointments.some(app => app.date === formattedDate && app.startTime === hour && app.location === locationIdx && app.status !== 3);
       const hasClosure = closures.some(closure => closure.date === formattedDate && closure.startTime <= hour && closure.endTime > hour && closure.location === locationIdx);
-
-      return isWithinOperatingHours && !hasAppointment && !hasClosure;
+      const clientLanguageUnavailable = noLanguages.some(unavailability => unavailability.date === formattedDate && unavailability.location === locationIdx && unavailability.language === client.language)
+      return isWithinOperatingHours && !hasAppointment && !hasClosure && !clientLanguageUnavailable;
     });
 
     setAvailableTimes(available);
@@ -115,10 +118,11 @@ const Book = () => {
 
     return [...Array(24).keys()].filter(hour => {
       const isWithinOperatingHours = hour >= location.openTime && hour < location.closeTime;
-      const hasAppointment = appointments.some(app => app.date === formattedDate && app.startTime === hour && app.location === locationIdx);
+      const hasAppointment = appointments.some(app => app.date === formattedDate && app.startTime === hour && app.location === locationIdx && app.status !== 3); // Status 0 = scheduled, 1 = show, 2 = no-show, 3 = cancelled, 4 = rescheduled
       const hasClosure = closures.some(closure => closure.date === formattedDate && closure.startTime <= hour && closure.endTime > hour && closure.location === locationIdx);
-
-      return isWithinOperatingHours && !hasAppointment && !hasClosure;
+      const clientLanguageUnavailable = noLanguages.some(unavailability => unavailability.date === formattedDate && unavailability.location === locationIdx && unavailability.language === client.language)
+      console.log(formattedDate, isWithinOperatingHours, hasAppointment, hasClosure, clientLanguageUnavailable);
+      return isWithinOperatingHours && !hasAppointment && !hasClosure && !clientLanguageUnavailable;
     });
   };
 
@@ -137,11 +141,11 @@ const Book = () => {
       <h2>Create New Appointment</h2>
 
       <div>
-        <h3>Location Availability for the Next 7 Days:</h3>
+        <h3>Location Availability for the Next 5 Days:</h3>
         {locations.map(location => (
           <div key={location.id}>
             <h4>{location.name}:</h4>
-            {nextSevenDays.map((day, index) => {
+            {nextFiveDays.map((day, index) => {
               const dayOfWeek = day.getDay();
               const isOpen = location.daysOpen[dayOfWeek];
               if (isOpen) {
@@ -171,7 +175,7 @@ const Book = () => {
       </div>
 
       <label>Date (up to a week in advance): 
-        <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} max={new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0]} />
+        <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} max={new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0]} />
       </label>
       {selectedLocation !== "" && selectedDate !== "" && <label>Time (available slots only): 
         <select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)}>

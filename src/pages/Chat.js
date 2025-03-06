@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const Chat = () => {
   const { client } = useAuth();
   const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
 
   const fetchMessages = async () => {
     try {
@@ -15,10 +16,29 @@ const Chat = () => {
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(message => message.client === client?.id);
 
-      console.log(clientMessages);
       setMessages(clientMessages);
     } catch (error) {
       console.error("Error fetching messages:", error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !client) return;
+
+    const messageData = {
+      client: client.id,
+      content: newMessage.trim(),
+      fromClient: true,
+      read: null, // or leave it undefined if you want it unset
+      sentOn: serverTimestamp(),
+    };
+
+    try {
+      await addDoc(collection(db, "messages"), messageData);
+      setNewMessage('');
+      fetchMessages(); // Refresh the messages list after sending
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
   };
 
@@ -34,7 +54,7 @@ const Chat = () => {
       <div>
         {messages.length > 0 ? (
           messages
-            .sort((a, b) => b.sentOn.seconds - a.sentOn.seconds) // Sort by sentOn timestamp in descending order
+            .sort((a, b) => b.sentOn.seconds - a.sentOn.seconds)
             .map((message) => (
               <div key={message.id}>
                 <strong>
@@ -49,6 +69,18 @@ const Chat = () => {
         ) : (
           <p>No messages available</p>
         )}
+      </div>
+      <div style={{ marginTop: '20px' }}>
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type your message..."
+          style={{ padding: '8px', width: '70%', marginRight: '10px' }}
+        />
+        <button onClick={handleSendMessage} style={{ padding: '8px 16px' }}>
+          Send
+        </button>
       </div>
     </div>
   );  
