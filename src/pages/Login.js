@@ -24,7 +24,8 @@ const Login = () => {
   const today = new Date();
   const tenYearsAgo = new Date(today.setFullYear(today.getFullYear() - 10));
   const tenYearsAgoDate = tenYearsAgo.toISOString().split("T")[0];
-  const threeMonthsAgo = new Date(today.setMonth(today.getMonth() - 3));
+  const threeMonthsAgo = new Date(); // Create a copy of today's date
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3); // Now subtract 3 months from the copy
   const threeMonthsAgoDate = threeMonthsAgo.toISOString().split("T")[0];
 
   const handleLogin = () => {
@@ -195,19 +196,15 @@ const Login = () => {
                         placeholder="Email (optional)"
                         className="p-2 rounded-lg mb-4 w-full text-center"
                       />
-                      {/* Language */}
-                      <p className="text-white">Preferred Language</p>
+                      <p className="text-white">Preferred Language (No Creole)</p>
                       <select className="p-2 rounded-lg mb-4 w-full text-start" value={language} onChange={(e) => setLanguage(e.target.value)}>
                         <option value="English">English</option>
                         <option value="Spanish">Español</option>
                       </select>
-                      {/* Date of Birth */}
                       <p className="text-white">Date of Birth</p>
                       <input className="p-2 rounded-lg mb-4 w-full text-center" type="date" value={dob} onChange={(e) => setDob(e.target.value)} max={tenYearsAgoDate}/>
-                      {/* Menstrual Date */}
                       <p className="text-white">First Day of Last Menstrual Period</p>
-                      <input className="p-2 rounded-lg mb-4 w-full text-center" type="date" value={menstrual} onChange={(e) => setMenstrual(e.target.value)} max={threeMonthsAgoDate}/>
-                      {/* Notes - optional */}
+                      <input className="p-2 rounded-lg mb-4 w-full text-center" type="date" value={menstrual} onChange={(e) => setMenstrual(e.target.value)} min={threeMonthsAgoDate} max={new Date().toISOString().split("T")[0]}/>
                       <input className="p-2 rounded-lg w-full text-start" type="" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes (optional)"/>
                     </div>
                   </div>
