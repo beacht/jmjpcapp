@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";  // Import js-cookie
+import Cookies from "js-cookie";
 import { db } from './firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);  // Empty array ensures this runs only once on page load
 
-  const login = async (phoneNumber) => {
+  const login = async (phoneNumber, navigateHome, navigateBook) => {
     try {
       const clientQuerySnapshot = await getDocs(collection(db, "clients"));
       const foundClient = clientQuerySnapshot.docs.find(doc => doc.data().phone === phoneNumber);
@@ -37,7 +37,8 @@ export const AuthProvider = ({ children }) => {
         // Store client data in cookies with an expiration date of 7 days
         Cookies.set("client", JSON.stringify(clientData), { expires: 7 });
 
-        navigate("/home");  // Redirect to the home page after login
+        if(navigateHome) navigate("/home");
+        if(navigateBook) navigate("/book");
       } else {
         alert("Phone number not found. Please register.");
       }

@@ -4,7 +4,6 @@ import { AuthProvider } from "./AuthContext";
 import Home from "./pages/Home";
 import Book from "./pages/Book";
 import Login from "./pages/Login";
-import Chat from "./pages/Chat";
 import PrivateRoute from "./PrivateRoute";
 
 function App() {
@@ -34,14 +33,6 @@ function App() {
             element={
               <PrivateRoute>
                 <Book />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/chat"
-            element={
-              <PrivateRoute>
-                <Chat />
               </PrivateRoute>
             }
           />

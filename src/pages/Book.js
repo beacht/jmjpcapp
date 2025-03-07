@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
+import { createAppointment } from "../helpers/appointment"; // Import the createAppointment function
 
 const Book = () => {
   const [appointments, setAppointments] = useState([]);
@@ -16,6 +18,8 @@ const Book = () => {
   const [filteredLocations, setFilteredLocations] = useState([]);
   const { client } = useAuth();
   const [nextFiveDays, setNextFiveDays] = useState([]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const currentDate = new Date();
@@ -46,8 +50,7 @@ const Book = () => {
       setAppointments(appointmentsQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
       setClosures(closuresQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
       setLocations(locationsQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-      setNoLanguages(noLanguagesQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id})))
-      console.log(noLanguages);
+      setNoLanguages(noLanguagesQuerySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -86,15 +89,20 @@ const Book = () => {
     const hour = parseInt(selectedTime, 10);
 
     try {
-      await addDoc(collection(db, "appointments"), {
+      // Replace addDoc with createAppointment
+      await createAppointment({
         date: formattedDate,
         startTime: hour,
         endTime: hour + 1,
         location: parseInt(selectedLocation),
         client: client.id,
+        status: 0,
+        rescheduleReason: "",
       });
+
       fetchData();
       alert("Appointment booked successfully");
+      navigate("/home");
     } catch (error) {
       console.error("Error booking appointment:", error);
     }
@@ -118,10 +126,9 @@ const Book = () => {
 
     return [...Array(24).keys()].filter(hour => {
       const isWithinOperatingHours = hour >= location.openTime && hour < location.closeTime;
-      const hasAppointment = appointments.some(app => app.date === formattedDate && app.startTime === hour && app.location === locationIdx && app.status !== 3); // Status 0 = scheduled, 1 = show, 2 = no-show, 3 = cancelled, 4 = rescheduled
+      const hasAppointment = appointments.some(app => app.date === formattedDate && app.startTime === hour && app.location === locationIdx && app.status !== 3);
       const hasClosure = closures.some(closure => closure.date === formattedDate && closure.startTime <= hour && closure.endTime > hour && closure.location === locationIdx);
       const clientLanguageUnavailable = noLanguages.some(unavailability => unavailability.date === formattedDate && unavailability.location === locationIdx && unavailability.language === client.language)
-      console.log(formattedDate, isWithinOperatingHours, hasAppointment, hasClosure, clientLanguageUnavailable);
       return isWithinOperatingHours && !hasAppointment && !hasClosure && !clientLanguageUnavailable;
     });
   };
