@@ -75,7 +75,7 @@ const Login = () => {
         firstName,
         lastName,
         email,
-        language,
+        language: language,
         dob: formattedDob,
         menstrual: formattedMenstrual,
         notes,
